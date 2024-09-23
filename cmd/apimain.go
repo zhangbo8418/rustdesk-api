@@ -87,7 +87,7 @@ func main() {
 		})
 	} else {
 		// SQLite
-		dbPath := "../data/data.db"
+		dbPath := global.Config.Gorm.Dbpath
 		dns := fmt.Sprintf("file:%s?mode=rw", dbPath)
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
 			Dns:           dns,
