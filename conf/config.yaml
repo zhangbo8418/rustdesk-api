@@ -10,6 +10,7 @@ gorm:
 mysql:
   username: ""
   password: ""
+  socket: ""
   addr: ""
   dbname: ""
 rustdesk:
