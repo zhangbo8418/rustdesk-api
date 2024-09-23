@@ -32,24 +32,24 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	//配置解析
+	// 配置解析
 	global.Viper = config.Init(&global.Config)
 
-	//日志
+	// 日志
 	global.Logger = logger.New(&logger.Config{
 		Path:         global.Config.Logger.Path,
 		Level:        global.Config.Logger.Level,
 		ReportCaller: global.Config.Logger.ReportCaller,
 	})
 
-	//redis
+	// Redis
 	global.Redis = redis.NewClient(&redis.Options{
 		Addr:     global.Config.Redis.Addr,
 		Password: global.Config.Redis.Password,
 		DB:       global.Config.Redis.Db,
 	})
 
-	//cache
+	// Cache
 	if global.Config.Cache.Type == cache.TypeFile {
 		fc := cache.NewFileCache()
 		fc.SetDir(global.Config.Cache.FileDir)
@@ -61,27 +61,46 @@ func main() {
 			DB:       global.Config.Cache.RedisDb,
 		})
 	}
-	//gorm
+
+	// Gorm
 	if global.Config.Gorm.Type == config.TypeMysql {
-		dns := global.Config.Mysql.Username + ":" + global.Config.Mysql.Password + "@(" + global.Config.Mysql.Addr + ")/" + global.Config.Mysql.Dbname + "?charset=utf8mb4&parseTime=True&loc=Local"
+		var dns string
+		if global.Config.Mysql.Socket != "" {
+			// 使用 Unix Socket 构建 DSN
+			dns = fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+				global.Config.Mysql.Username,
+				global.Config.Mysql.Password,
+				global.Config.Mysql.Socket,
+				global.Config.Mysql.Dbname)
+		} else {
+			// 使用 TCP 构建 DSN
+			dns = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+				global.Config.Mysql.Username,
+				global.Config.Mysql.Password,
+				global.Config.Mysql.Addr,
+				global.Config.Mysql.Dbname)
+		}
 		global.DB = orm.NewMysql(&orm.MysqlConfig{
 			Dns:          dns,
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
 			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		})
 	} else {
-		//sqlite
+		// SQLite
+		dbPath := "../data/data.db"
+		dns := fmt.Sprintf("file:%s?mode=rw", dbPath)
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
-			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
-			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
+			Dns:           dns,
+			MaxIdleConns:  global.Config.Gorm.MaxIdleConns,
+			MaxOpenConns:  global.Config.Gorm.MaxOpenConns,
 		})
 	}
 	DatabaseAutoUpdate()
 
-	//validator
+	// Validator
 	ApiInitValidator()
 
-	//oss
+	// OSS
 	global.Oss = &upload.Oss{
 		AccessKeyId:     global.Config.Oss.AccessKeyId,
 		AccessKeySecret: global.Config.Oss.AccessKeySecret,
@@ -91,14 +110,14 @@ func main() {
 		MaxByte:         global.Config.Oss.MaxByte,
 	}
 
-	//jwt
-	//fmt.Println(global.Config.Jwt.PrivateKey)
-	//global.Jwt = jwt.NewJwt(global.Config.Jwt.PrivateKey, global.Config.Jwt.ExpireDuration*time.Second)
+	// JWT
+	// fmt.Println(global.Config.Jwt.PrivateKey)
+	// global.Jwt = jwt.NewJwt(global.Config.Jwt.PrivateKey, global.Config.Jwt.ExpireDuration*time.Second)
 
-	//locker
+	// Locker
 	global.Lock = lock.NewLocal()
 
-	//gin
+	// Gin
 	http.ApiInit()
 
 }
@@ -111,7 +130,7 @@ func ApiInitValidator() {
 	trans, _ := uni.GetTranslator("cn")
 	err := zh_translations.RegisterDefaultTranslations(validate, trans)
 	if err != nil {
-		//退出
+		// 退出
 		panic(err)
 	}
 	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
@@ -162,14 +181,26 @@ func DatabaseAutoUpdate() {
 	db := global.DB
 
 	if global.Config.Gorm.Type == config.TypeMysql {
-		//检查存不存在数据库，不存在则创建
+		// 检查存不存在数据库，不存在则创建
 		dbName := db.Migrator().CurrentDatabase()
 		fmt.Println("dbName", dbName)
 		if dbName == "" {
 			dbName = global.Config.Mysql.Dbname
-			// 移除 DSN 中的数据库名称，以便初始连接时不指定数据库
-			dsnWithoutDB := global.Config.Mysql.Username + ":" + global.Config.Mysql.Password + "@(" + global.Config.Mysql.Addr + ")/?charset=utf8mb4&parseTime=True&loc=Local"
-			//新链接
+			var dsnWithoutDB string
+			if global.Config.Mysql.Socket != "" {
+				// 使用 Unix Socket 构建 DSN
+				dsnWithoutDB = fmt.Sprintf("%s:%s@unix(%s)/?charset=utf8mb4&parseTime=True&loc=Local",
+					global.Config.Mysql.Username,
+					global.Config.Mysql.Password,
+					global.Config.Mysql.Socket)
+			} else {
+				// 使用 TCP 构建 DSN
+				dsnWithoutDB = fmt.Sprintf("%s:%s@tcp(%s)/?charset=utf8mb4&parseTime=True&loc=Local",
+					global.Config.Mysql.Username,
+					global.Config.Mysql.Password,
+					global.Config.Mysql.Addr)
+			}
+			// 新链接
 			dbWithoutDB := orm.NewMysql(&orm.MysqlConfig{
 				Dns: dsnWithoutDB,
 			})
@@ -196,7 +227,7 @@ func DatabaseAutoUpdate() {
 	if !db.Migrator().HasTable(&model.Version{}) {
 		Migrate(uint(version))
 	} else {
-		//查找最后一个version
+		// 查找最后一个version
 		var v model.Version
 		db.Last(&v)
 		if v.Version < uint(version) {
@@ -205,6 +236,7 @@ func DatabaseAutoUpdate() {
 	}
 
 }
+
 func Migrate(version uint) {
 	fmt.Println("migrating....", version)
 	err := global.DB.AutoMigrate(
@@ -223,7 +255,7 @@ func Migrate(version uint) {
 		fmt.Println("migrate err :=>", err)
 	}
 	global.DB.Create(&model.Version{Version: version})
-	//如果是初次则创建一个默认用户
+	// 如果是初次则创建一个默认用户
 	var vc int64
 	global.DB.Model(&model.Version{}).Count(&vc)
 	if vc == 1 {
@@ -237,7 +269,7 @@ func Migrate(version uint) {
 			Type: model.GroupTypeShare,
 		}
 		service.AllService.GroupService.Create(groupShare)
-		//是true
+		// 是true
 		is_admin := true
 		admin := &model.User{
 			Username: "admin",
