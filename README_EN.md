@@ -8,7 +8,30 @@ desktop software that provides self-hosted solutions.
 <img src="https://img.shields.io/badge/gin-v1.9.0-lightBlue"/>
 <img src="https://img.shields.io/badge/gorm-v1.25.7-green"/>
 <img src="https://img.shields.io/badge/swag-v1.16.3-yellow"/>
+<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/release.yml/badge.svg"/>
+<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/docker.yml/badge.svg"/>
 </div>
+
+# Features
+
+- PC API
+    - Personal API
+    - Login
+    - Address Book
+    - Groups
+    - Authorized login, supports `GitHub` and `Google` login, supports `web admin` authorized login
+- Web Admin
+    - User Management
+    - Device Management
+    - Address Book Management
+    - Tag Management
+    - Group Management
+    - OAuth Management
+    - Quick access to web client
+- Web Client
+    - Automatically obtain API server
+    - Automatically obtain ID server and KEY
+    - Automatically obtain address book
 
 ## Prerequisites
 
@@ -30,14 +53,13 @@ desktop software that provides self-hosted solutions.
    hbbr -k abc1234567
    ```
 
-## Features
+## Overview
 
-### API Service: Basic implementation of the PC client's primary interfaces.
+### API Service: Basic implementation of the PC client's primary interfaces.Supports the Personal version api, which can be enabled by configuring the `rustdesk.personal` file or the `RUSTDESK_API_RUSTDESK_PERSONAL` environment variable.
 
 #### Login
 
-- Added `GitHub` and `Google` login, which can be used after configuration in the admin panel. See the OAuth configuration section
-  for details.
+- Added `GitHub` and `Google` login, which can be used after configuration in the admin panel. See the OAuth configuration section for details.
 - Added authorization login for the web admin panel.
 
 ![pc_login](docs/pc_login.png)
@@ -46,28 +68,30 @@ desktop software that provides self-hosted solutions.
 
 ![pc_ab](docs/pc_ab.png)
 
-#### Groups: Groups are divided into `shared groups` and `regular groups`. In shared groups, everyone can see the addresses of all group members, while in regular groups, only administrators can see all members' addresses.
+#### Groups: Groups are divided into `shared groups` and `regular groups`. In shared groups, everyone can see the peers of all group members, while in regular groups, only administrators can see all members' peers.
 
 ![pc_gr](docs/pc_gr.png)
 
-### **Web UI**: The frontend and backend are separated to provide a user-friendly management interface, primarily for managing and displaying data.
+### Web Admin
 
-***Frontend code is available at [rustdesk-api-web](https://github.com/lejianwen/rustdesk-api-web)***
+***The frontend and backend are separated to provide a user-friendly management interface, primarily for managing and
+displaying data.Frontend code is available at [rustdesk-api-web](https://github.com/lejianwen/rustdesk-api-web)***
 
-***Admin panel URL: `http://<your server>[:port]/_admin/`. The default username and password for the initial
+***Admin panel URL: `http://<your server[:port]>/_admin/`. The default username and password for the initial
 installation are `admin` `admin`, please change the password immediately.***
 
 1. Admin interface:
    ![web_admin](docs/web_admin.png)
 2. Regular user interface:
    ![web_user](docs/web_admin_user.png)
-3. You can change your password from the top right corner:
+   You can change your password from the top right corner:
    ![web_resetpwd](docs/web_resetpwd.png)
-4. Groups can be customized for easy management. Currently, two types are supported: `shared group` and `regular group`.
+3. Groups can be customized for easy management. Currently, two types are supported: `shared group` and `regular group`.
    ![web_admin_gr](docs/web_admin_gr.png)
-5. You can open the web client directly for convenience:
+4. You can open the web client directly for convenience:
    ![web_webclient](docs/admin_webclient.png)
-6. OAuth support: Currently, `GitHub` and `Google`  is supported. You need to create an `OAuth App` and configure it in the admin
+5. OAuth support: Currently, `GitHub` and `Google`  is supported. You need to create an `OAuth App` and configure it in
+   the admin
    panel.
    ![web_admin_oauth](docs/web_admin_oauth.png)
     - Create a `GitHub OAuth App`
@@ -75,7 +99,7 @@ installation are `admin` `admin`, please change the password immediately.***
     - Set the `Authorization callback URL` to `http://<your server[:port]>/api/oauth/callback`,
       e.g., `http://127.0.0.1:21114/api/oauth/callback`.
 
-### **Web Client**:
+### Web Client:
 
 1. If you're already logged into the admin panel, the web client will log in automatically.
 2. If you're not logged in, simply click the login button at the top right corner, and the API server will be
@@ -84,10 +108,10 @@ installation are `admin` `admin`, please change the password immediately.***
 3. After logging in, the ID server and key will be automatically synced.
 4. The address book will also be automatically saved to the web client for convenient use.
 
-### **Automated Documentation** : API documentation is generated using Swag, making it easier for developers to understand and use the API.
+### Automated Documentation : API documentation is generated using Swag, making it easier for developers to understand and use the API.
 
-1. Admin panel docs: `<your server>/admin/swagger/index.html`
-2. PC client docs: `<your server>/swagger/index.html`
+1. Admin panel docs: `<your server[:port]>/admin/swagger/index.html`
+2. PC client docs: `<your server[:port]>/swagger/index.html`
    ![api_swag](docs/api_swag.png)
 
 ## Installation and Setup
@@ -117,19 +141,22 @@ rustdesk:
   relay-server: "192.168.1.66:21117"
   api-server: "http://192.168.1.66:21114"
   key: "123456789"
+  personal: 1
 ```
 
-* Environment variables, with the prefix `RUSTDESK_API`, will override the settings in the configuration file if
+* Environment variables, with the prefix `RUSTDESK_API_RUSTDESK_PERSONAL`, will override the settings in the configuration file if
   present.
 
 | Variable Name                      | Description                                               | Example                        |
 |------------------------------------|-----------------------------------------------------------|--------------------------------|
+| TZ                                 | timezone                                                  | Asia/Shanghai                  |
 | ----- GIN Configuration -----      | ---------------------------------------                   | ------------------------------ |
 | RUSTDESK_API_GIN_TRUST_PROXY       | Trusted proxy IPs, separated by commas.                   | 192.168.1.2,192.168.1.3        |
 | ----- GORM Configuration -----     | ---------------------------------------                   | ------------------------------ |
 | RUSTDESK_API_GORM_TYPE             | Database type (`sqlite` or `mysql`). Default is `sqlite`. | sqlite                         |
 | RUSTDESK_API_GORM_MAX_IDLE_CONNS   | Maximum idle connections                                  | 10                             |
 | RUSTDESK_API_GORM_MAX_OPEN_CONNS   | Maximum open connections                                  | 100                            |
+| RUSTDESK_API_RUSTDESK_PERSONAL     | Open Personal Api 1:Enable,0:Disable                      | 1                              |
 | ----- MYSQL Configuration -----    | ---------------------------------------                   | ------------------------------ |
 | RUSTDESK_API_MYSQL_USERNAME        | MySQL username                                            | root                           |
 | RUSTDESK_API_MYSQL_PASSWORD        | MySQL password                                            | 111111                         |
@@ -241,6 +268,70 @@ lejianwen/rustdesk-api
        restart: unless-stopped
    
    ```
+    - If you are using an S6 image, you need to modify the startup script `/etc/s6-overlay/s6-rc.d/hbbr/run`
+      and `/etc/s6-overlay/s6-rc.d/hbbr/run`
+
+        1. create `hbbr/run`
+
+            ```bash
+            #!/command/with-contenv sh
+            cd /data
+            PARAMS=
+            [ "${ENCRYPTED_ONLY}" = "1" ] && PARAMS="-k ${KEY}"
+            /usr/bin/hbbr $PARAMS
+            ```
+
+        2. create `hbbs/run`
+            ```bash
+            #!/command/with-contenv sh
+            sleep 2
+            cd /data
+            PARAMS=
+            [ "${ENCRYPTED_ONLY}" = "1" ] && PARAMS="-k ${KEY}"
+            /usr/bin/hbbs -r $RELAY $PARAMS
+            ```
+        3. edit `docker-compose.yml`
+            ```
+            networks:
+              rustdesk-net:
+                external: false
+            services:
+              rustdesk-server:
+                container_name: rustdesk-server
+                ports:
+                  - 21115:21115
+                  - 21116:21116
+                  - 21116:21116/udp
+                  - 21117:21117
+                  - 21118:21118
+                  - 21119:21119
+                image: rustdesk/rustdesk-server-s6:latest
+                environment:
+                  - RELAY=192.168.1.66:21117
+                  - ENCRYPTED_ONLY=1
+                  - KEY=abc123456789
+                volumes:
+                  - ./data:/data
+                  - ./hbbr/run:/etc/s6-overlay/s6-rc.d/hbbr/run
+                  - ./hbbs/run:/etc/s6-overlay/s6-rc.d/hbbs/run
+                restart: unless-stopped
+              rustdesk-api:
+                container_name: rustdesk-api
+                ports:
+                  - 21114:21114
+                image: lejianwen/rustdesk-api
+                environment:
+                  - TZ=Asia/Shanghai
+                  - RUSTDESK_API_RUSTDESK_ID_SERVER=192.168.1.66:21116
+                  - RUSTDESK_API_RUSTDESK_RELAY_SERVER=192.168.1.66:21117
+                  - RUSTDESK_API_RUSTDESK_API_SERVER=http://192.168.1.66:21114
+                  - RUSTDESK_API_RUSTDESK_KEY=abc123456789
+                volumes:
+                  - /data/rustdesk/api:/app/data #将数据库挂载
+                networks:
+                  - rustdesk-net
+                restart: unless-stopped
+            ```
 
 #### Running from Release
 
@@ -286,7 +377,7 @@ Download the release from [release](https://github.com/lejianwen/rustdesk-api/re
    compiling, the corresponding executables will be generated in the `release` directory. Run the compiled executables
    directly.
 
-6. Open your browser and visit `http://<your server>:21114/_admin/`, with default credentials `admin admin`. Please
+6. Open your browser and visit `http://<your server[:port]>/_admin/`, with default credentials `admin admin`. Please
    change the password promptly.
 
 ## Miscellaneous
