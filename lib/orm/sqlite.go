@@ -7,6 +7,7 @@ import (
 )
 
 type SqliteConfig struct {
+	Path         string
 	MaxIdleConns int
 	MaxOpenConns int
 }
