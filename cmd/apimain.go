@@ -63,8 +63,8 @@ func main() {
 	}
 
 	// Gorm
+	var dns string
 	if global.Config.Gorm.Type == config.TypeMysql {
-		var dns string
 		if global.Config.Mysql.Socket != "" {
 			// 使用 Unix Socket 构建 DSN
 			dns = fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -88,11 +88,11 @@ func main() {
 	} else {
 		// SQLite
 		dbPath := global.Config.Gorm.Dbpath
-		dns := fmt.Sprintf("file:%s?mode=rw", dbPath)
+		dns = fmt.Sprintf("file:%s?mode=rw", dbPath) 
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
-			Dns:           dns,
-			MaxIdleConns:  global.Config.Gorm.MaxIdleConns,
-			MaxOpenConns:  global.Config.Gorm.MaxOpenConns,
+			Path:          dns,
+			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
+			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		})
 	}
 	DatabaseAutoUpdate()
@@ -283,3 +283,4 @@ func Migrate(version uint) {
 	}
 
 }
+
