@@ -8,8 +8,7 @@ desktop software that provides self-hosted solutions.
 <img src="https://img.shields.io/badge/gin-v1.9.0-lightBlue"/>
 <img src="https://img.shields.io/badge/gorm-v1.25.7-green"/>
 <img src="https://img.shields.io/badge/swag-v1.16.3-yellow"/>
-<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/release.yml/badge.svg"/>
-<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/docker.yml/badge.svg"/>
+<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/build.yml/badge.svg"/>
 </div>
 
 # Features
@@ -20,6 +19,7 @@ desktop software that provides self-hosted solutions.
     - Address Book
     - Groups
     - Authorized login, supports `GitHub` and `Google` login, supports `web admin` authorized login
+    - i18n
 - Web Admin
     - User Management
     - Device Management
@@ -28,6 +28,7 @@ desktop software that provides self-hosted solutions.
     - Group Management
     - OAuth Management
     - Quick access to web client
+    - i18n
 - Web Client
     - Automatically obtain API server
     - Automatically obtain ID server and KEY
@@ -59,18 +60,19 @@ desktop software that provides self-hosted solutions.
 
 #### Login
 
-- Added `GitHub` and `Google` login, which can be used after configuration in the admin panel. See the OAuth configuration section for details.
+- Added `GitHub` and `Google` login, which can be used after configuration in the admin panel. See the OAuth
+  configuration section for details.
 - Added authorization login for the web admin panel.
 
-![pc_login](docs/pc_login.png)
+![pc_login](docs/en_img/pc_login.png)
 
 #### Address Book
 
-![pc_ab](docs/pc_ab.png)
+![pc_ab](docs/en_img/pc_ab.png)
 
 #### Groups: Groups are divided into `shared groups` and `regular groups`. In shared groups, everyone can see the peers of all group members, while in regular groups, only administrators can see all members' peers.
 
-![pc_gr](docs/pc_gr.png)
+![pc_gr](docs/en_img/pc_gr.png)
 
 ### Web Admin
 
@@ -81,19 +83,19 @@ displaying data.Frontend code is available at [rustdesk-api-web](https://github.
 installation are `admin` `admin`, please change the password immediately.***
 
 1. Admin interface:
-   ![web_admin](docs/web_admin.png)
+   ![web_admin](docs/en_img/web_admin.png)
 2. Regular user interface:
-   ![web_user](docs/web_admin_user.png)
+   ![web_user](docs/en_img/web_admin_user.png)
    You can change your password from the top right corner:
-   ![web_resetpwd](docs/web_resetpwd.png)
+   ![web_resetpwd](docs/en_img/web_resetpwd.png)
 3. Groups can be customized for easy management. Currently, two types are supported: `shared group` and `regular group`.
-   ![web_admin_gr](docs/web_admin_gr.png)
+   ![web_admin_gr](docs/en_img/web_admin_gr.png)
 4. You can open the web client directly for convenience:
-   ![web_webclient](docs/admin_webclient.png)
+   ![web_webclient](docs/en_img/admin_webclient.png)
 5. OAuth support: Currently, `GitHub` and `Google`  is supported. You need to create an `OAuth App` and configure it in
    the admin
    panel.
-   ![web_admin_oauth](docs/web_admin_oauth.png)
+   ![web_admin_oauth](docs/en_img/web_admin_oauth.png)
     - Create a `GitHub OAuth App`
       at `Settings` -> `Developer settings` -> `OAuth Apps` -> `New OAuth App` [here](https://github.com/settings/developers).
     - Set the `Authorization callback URL` to `http://<your server[:port]>/api/oauth/callback`,
@@ -118,10 +120,12 @@ installation are `admin` `admin`, please change the password immediately.***
 
 ### Configuration
 
-* Modify the configuration in `conf/config.yaml`. If `gorm.type` is set to `sqlite`, MySQL-related configurations are
-  not required.
+* Modify the configuration in `conf/config.yaml`. 
+* If `gorm.type` is set to `sqlite`, MySQL-related configurations are not required.
+* Language support: `en` and `zh-CN` are supported. The default is `zh-CN`.
 
 ```yaml
+lang: "en"
 gin:
   api-addr: "0.0.0.0:21114"
   mode: "release"
@@ -144,12 +148,14 @@ rustdesk:
   personal: 1
 ```
 
-* Environment variables, with the prefix `RUSTDESK_API_RUSTDESK_PERSONAL`, will override the settings in the configuration file if
+* Environment variables, with the prefix `RUSTDESK_API_RUSTDESK_PERSONAL`, will override the settings in the
+  configuration file if
   present.
 
 | Variable Name                      | Description                                               | Example                        |
 |------------------------------------|-----------------------------------------------------------|--------------------------------|
 | TZ                                 | timezone                                                  | Asia/Shanghai                  |
+| RUSTDESK_API_LANG                  | Language                                                  | `en`,`zh-CN`                   |
 | ----- GIN Configuration -----      | ---------------------------------------                   | ------------------------------ |
 | RUSTDESK_API_GIN_TRUST_PROXY       | Trusted proxy IPs, separated by commas.                   | 192.168.1.2,192.168.1.3        |
 | ----- GORM Configuration -----     | ---------------------------------------                   | ------------------------------ |
@@ -178,6 +184,7 @@ rustdesk:
 ```bash
 docker run -d --name rustdesk-api -p 21114:21114 \
 -v /data/rustdesk/api:/app/data \
+-e RUSTDESK_API_LANG=en \
 -e RUSTDESK_API_RUSTDESK_ID_SERVER=192.168.1.66:21116 \
 -e RUSTDESK_API_RUSTDESK_RELAY_SERVER=192.168.1.66:21117 \
 -e RUSTDESK_API_RUSTDESK_API_SERVER=http://192.168.1.66:21114 \

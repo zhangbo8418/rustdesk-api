@@ -9,8 +9,7 @@
 <img src="https://img.shields.io/badge/gin-v1.9.0-lightBlue"/>
 <img src="https://img.shields.io/badge/gorm-v1.25.7-green"/>
 <img src="https://img.shields.io/badge/swag-v1.16.3-yellow"/>
-<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/release.yml/badge.svg"/>
-<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/docker.yml/badge.svg"/>
+<img src="https://github.com/lejianwen/rustdesk-api/actions/workflows/build.yml/badge.svg"/>
 </div>
 
 # 特性
@@ -21,6 +20,7 @@
     - 地址簿
     - 群组
     - 授权登录，支持`github`和`google`登录，支持`web后台`授权登录
+    - i18n
 - Web Admin
     - 用户管理
     - 设备管理
@@ -29,6 +29,7 @@
     - 群组管理
     - Oauth 管理
     - 快速使用web client
+    - i18n
 - Web Client
     - 自动获取API server
     - 自动获取ID服务器和KEY
@@ -72,7 +73,7 @@
 
 ![pc_gr](docs/pc_gr.png)
 
-### Web Admin: 
+### Web Admin:
 
 ***使用前后端分离，提供用户友好的管理界面，主要用来管理和展示。前端代码在[rustdesk-api-web](https://github.com/lejianwen/rustdesk-api-web)***
 
@@ -114,9 +115,12 @@
 
 ### 相关配置
 
-* 参考`conf/config.yaml`配置文件，修改相关配置。如果`gorm.type`是`sqlite`，则不需要配置mysql相关配置。
+* 参考`conf/config.yaml`配置文件，修改相关配置。
+* 如果`gorm.type`是`sqlite`，则不需要配置mysql相关配置。
+* 语言如果不设置默认为`zh-CN`
 
 ```yaml
+lang: "en"
 gin:
   api-addr: "0.0.0.0:21114"
   mode: "release"
@@ -144,6 +148,7 @@ rustdesk:
 | 变量名                                 | 说明                                   | 示例                          |
 |-------------------------------------|--------------------------------------|-----------------------------|
 | TZ                                  | 时区                                   | Asia/Shanghai               |
+| RUSTDESK_API_LANG                   | 语言                                   | `en`,`zh-CN`                |
 | -----GIN配置-----                     | ----------                           | ----------                  |
 | RUSTDESK_API_GIN_TRUST_PROXY        | 信任的代理IP列表，以`,`分割，默认信任所有              | 192.168.1.2,192.168.1.3     |
 | -----------GORM配置------------------ | ------------------------------------ | --------------------------- |

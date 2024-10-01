@@ -4,6 +4,7 @@ import (
 	"Gwen/global"
 	"Gwen/http/request/admin"
 	"Gwen/http/response"
+	"Gwen/model"
 	"Gwen/service"
 	_ "encoding/json"
 	"github.com/gin-gonic/gin"
@@ -31,14 +32,14 @@ func (ct *AddressBook) Detail(c *gin.Context) {
 	t := service.AllService.AddressBookService.InfoByRowId(uint(iid))
 	u := service.AllService.UserService.CurUser(c)
 	if !service.AllService.UserService.IsAdmin(u) && t.UserId != u.Id {
-		response.Fail(c, 101, "无权限")
+		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 	if t.RowId > 0 {
 		response.Success(c, t)
 		return
 	}
-	response.Fail(c, 101, "信息不存在")
+	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 	return
 }
 
@@ -56,10 +57,10 @@ func (ct *AddressBook) Detail(c *gin.Context) {
 func (ct *AddressBook) Create(c *gin.Context) {
 	f := &admin.AddressBookForm{}
 	if err := c.ShouldBindJSON(f); err != nil {
-		response.Fail(c, 101, "参数错误")
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	errList := global.Validator.ValidStruct(f)
+	errList := global.Validator.ValidStruct(c, f)
 	if len(errList) > 0 {
 		response.Fail(c, 101, errList[0])
 		return
@@ -69,12 +70,70 @@ func (ct *AddressBook) Create(c *gin.Context) {
 	if !service.AllService.UserService.IsAdmin(u) || t.UserId == 0 {
 		t.UserId = u.Id
 	}
+	ex := service.AllService.AddressBookService.InfoByUserIdAndId(t.UserId, t.Id)
+	if ex.RowId > 0 {
+		response.Fail(c, 101, response.TranslateMsg(c, "ItemExist"))
+		return
+	}
+
 	err := service.AllService.AddressBookService.Create(t)
 	if err != nil {
-		response.Fail(c, 101, "创建失败")
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
 	response.Success(c, u)
+}
+
+// BatchCreate 批量创建地址簿
+// @Tags 地址簿
+// @Summary 批量创建地址簿
+// @Description 批量创建地址簿
+// @Accept  json
+// @Produce  json
+// @Param body body admin.AddressBookForm true "地址簿信息"
+// @Success 200 {object} response.Response{data=model.AddressBook}
+// @Failure 500 {object} response.Response
+// @Router /admin/address_book/create [post]
+// @Security token
+func (ct *AddressBook) BatchCreate(c *gin.Context) {
+	f := &admin.AddressBookForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	errList := global.Validator.ValidStruct(c, f)
+	if len(errList) > 0 {
+		response.Fail(c, 101, errList[0])
+		return
+	}
+
+	//创建标签
+	for _, fu := range f.UserIds {
+		if fu == 0 {
+			continue
+		}
+		for _, ft := range f.Tags {
+			exTag := service.AllService.TagService.InfoByUserIdAndName(fu, ft)
+			if exTag.Id == 0 {
+				service.AllService.TagService.Create(&model.Tag{
+					UserId: fu,
+					Name:   ft,
+				})
+			}
+		}
+	}
+	ts := f.ToAddressBooks()
+	for _, t := range ts {
+		if t.UserId == 0 {
+			continue
+		}
+		ex := service.AllService.AddressBookService.InfoByUserIdAndId(t.UserId, t.Id)
+		if ex.RowId == 0 {
+			service.AllService.AddressBookService.Create(t)
+		}
+	}
+
+	response.Success(c, nil)
 }
 
 // List 列表
@@ -94,7 +153,7 @@ func (ct *AddressBook) Create(c *gin.Context) {
 func (ct *AddressBook) List(c *gin.Context) {
 	query := &admin.AddressBookQuery{}
 	if err := c.ShouldBindQuery(query); err != nil {
-		response.Fail(c, 101, "参数错误")
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
 	u := service.AllService.UserService.CurUser(c)
@@ -102,8 +161,17 @@ func (ct *AddressBook) List(c *gin.Context) {
 		query.UserId = int(u.Id)
 	}
 	res := service.AllService.AddressBookService.List(query.Page, query.PageSize, func(tx *gorm.DB) {
+		if query.Id != "" {
+			tx.Where("id like ?", "%"+query.Id+"%")
+		}
 		if query.UserId > 0 {
 			tx.Where("user_id = ?", query.UserId)
+		}
+		if query.Username != "" {
+			tx.Where("username like ?", "%"+query.Username+"%")
+		}
+		if query.Hostname != "" {
+			tx.Where("hostname like ?", "%"+query.Hostname+"%")
 		}
 	})
 	response.Success(c, res)
@@ -123,27 +191,27 @@ func (ct *AddressBook) List(c *gin.Context) {
 func (ct *AddressBook) Update(c *gin.Context) {
 	f := &admin.AddressBookForm{}
 	if err := c.ShouldBindJSON(f); err != nil {
-		response.Fail(c, 101, "参数错误")
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
-	errList := global.Validator.ValidStruct(f)
+	errList := global.Validator.ValidStruct(c, f)
 	if len(errList) > 0 {
 		response.Fail(c, 101, errList[0])
 		return
 	}
 	if f.RowId == 0 {
-		response.Fail(c, 101, "参数错误")
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
 	t := f.ToAddressBook()
 	u := service.AllService.UserService.CurUser(c)
 	if !service.AllService.UserService.IsAdmin(u) && t.UserId != u.Id {
-		response.Fail(c, 101, "无权限")
+		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 	err := service.AllService.AddressBookService.Update(t)
 	if err != nil {
-		response.Fail(c, 101, "更新失败")
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
 	response.Success(c, nil)
@@ -163,11 +231,11 @@ func (ct *AddressBook) Update(c *gin.Context) {
 func (ct *AddressBook) Delete(c *gin.Context) {
 	f := &admin.AddressBookForm{}
 	if err := c.ShouldBindJSON(f); err != nil {
-		response.Fail(c, 101, "系统错误")
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
 		return
 	}
 	id := f.RowId
-	errList := global.Validator.ValidVar(id, "required,gt=0")
+	errList := global.Validator.ValidVar(c, id, "required,gt=0")
 	if len(errList) > 0 {
 		response.Fail(c, 101, errList[0])
 		return
@@ -175,7 +243,7 @@ func (ct *AddressBook) Delete(c *gin.Context) {
 	t := service.AllService.AddressBookService.InfoByRowId(f.RowId)
 	u := service.AllService.UserService.CurUser(c)
 	if !service.AllService.UserService.IsAdmin(u) && t.UserId != u.Id {
-		response.Fail(c, 101, "无权限")
+		response.Fail(c, 101, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
 	if u.Id > 0 {
@@ -184,8 +252,8 @@ func (ct *AddressBook) Delete(c *gin.Context) {
 			response.Success(c, nil)
 			return
 		}
-		response.Fail(c, 101, err.Error())
+		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
-	response.Fail(c, 101, "信息不存在")
+	response.Fail(c, 101, response.TranslateMsg(c, "ItemNotFound"))
 }
