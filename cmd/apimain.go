@@ -242,8 +242,7 @@ func DatabaseAutoUpdate() {
 					global.Config.Mysql.Username,
 					global.Config.Mysql.Password,
 					global.Config.Mysql.Addr)
-	
-			   
+			}
 			dbWithoutDB := orm.NewMysql(&orm.MysqlConfig{
 				Dns: dsnWithoutDB,
 			})
