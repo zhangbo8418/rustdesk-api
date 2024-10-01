@@ -12,12 +12,18 @@ import (
 	"Gwen/model"
 	"Gwen/service"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh_Hans_CN"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
 	zh_translations "github.com/go-playground/validator/v10/translations/zh"
 	"github.com/go-redis/redis/v8"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
+	nethttp "net/http"
 	"reflect"
 )
 
@@ -32,24 +38,26 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	// 配置解析
+	//配置解析
 	global.Viper = config.Init(&global.Config)
 
-	// 日志
+	//日志
 	global.Logger = logger.New(&logger.Config{
 		Path:         global.Config.Logger.Path,
 		Level:        global.Config.Logger.Level,
 		ReportCaller: global.Config.Logger.ReportCaller,
 	})
 
-	// Redis
+	InitI18n()
+
+	//redis
 	global.Redis = redis.NewClient(&redis.Options{
 		Addr:     global.Config.Redis.Addr,
 		Password: global.Config.Redis.Password,
 		DB:       global.Config.Redis.Db,
 	})
 
-	// Cache
+	//cache
 	if global.Config.Cache.Type == cache.TypeFile {
 		fc := cache.NewFileCache()
 		fc.SetDir(global.Config.Cache.FileDir)
@@ -62,7 +70,7 @@ func main() {
 		})
 	}
 
-	// Gorm
+	//gorm
 	var dns string
 	if global.Config.Gorm.Type == config.TypeMysql {
 		if global.Config.Mysql.Socket != "" {
@@ -86,9 +94,9 @@ func main() {
 			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		})
 	} else {
-		// SQLite
+		//sqlite
 		dbPath := global.Config.Gorm.Dbpath
-		dns = fmt.Sprintf("file:%s?mode=rw", dbPath) 
+		dns = fmt.Sprintf("file:%s?mode=rw", dbPath)
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
 			Path:          dns,
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
@@ -97,10 +105,10 @@ func main() {
 	}
 	DatabaseAutoUpdate()
 
-	// Validator
+	//validator
 	ApiInitValidator()
 
-	// OSS
+	//oss
 	global.Oss = &upload.Oss{
 		AccessKeyId:     global.Config.Oss.AccessKeyId,
 		AccessKeySecret: global.Config.Oss.AccessKeySecret,
@@ -110,29 +118,39 @@ func main() {
 		MaxByte:         global.Config.Oss.MaxByte,
 	}
 
-	// JWT
-	// fmt.Println(global.Config.Jwt.PrivateKey)
-	// global.Jwt = jwt.NewJwt(global.Config.Jwt.PrivateKey, global.Config.Jwt.ExpireDuration*time.Second)
+	//jwt
+	//fmt.Println(global.Config.Jwt.PrivateKey)
+	//global.Jwt = jwt.NewJwt(global.Config.Jwt.PrivateKey, global.Config.Jwt.ExpireDuration*time.Second)
 
-	// Locker
+	//locker
 	global.Lock = lock.NewLocal()
 
-	// Gin
+	//gin
 	http.ApiInit()
 
 }
 
 func ApiInitValidator() {
 	validate := validator.New()
+
+	// 定义不同的语言翻译
 	enT := en.New()
 	cn := zh_Hans_CN.New()
+
 	uni := ut.New(enT, cn)
-	trans, _ := uni.GetTranslator("cn")
-	err := zh_translations.RegisterDefaultTranslations(validate, trans)
+
+	enTrans, _ := uni.GetTranslator("en")
+	zhTrans, _ := uni.GetTranslator("zh_Hans_CN")
+
+	err := zh_translations.RegisterDefaultTranslations(validate, zhTrans)
 	if err != nil {
-		// 退出
 		panic(err)
 	}
+	err = en_translations.RegisterDefaultTranslations(validate, enTrans)
+	if err != nil {
+		panic(err)
+	}
+
 	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
 		label := field.Tag.Get("label")
 		if label == "" {
@@ -141,10 +159,16 @@ func ApiInitValidator() {
 		return label
 	})
 	global.Validator.Validate = validate
-	global.Validator.VTrans = trans
+	global.Validator.UT = uni // 存储 Universal Translator
+	global.Validator.VTrans = zhTrans
 
-	global.Validator.ValidStruct = func(i interface{}) []string {
+	global.Validator.ValidStruct = func(ctx *gin.Context, i interface{}) []string {
 		err := global.Validator.Validate.Struct(i)
+		lang := ctx.GetHeader("Accept-Language")
+		if lang == "" {
+			lang = global.Config.Lang
+		}
+		trans := getTranslatorForLang(lang)
 		errList := make([]string, 0, 10)
 		if err != nil {
 			if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -152,14 +176,18 @@ func ApiInitValidator() {
 				return errList
 			}
 			for _, err2 := range err.(validator.ValidationErrors) {
-				errList = append(errList, err2.Translate(global.Validator.VTrans))
+				errList = append(errList, err2.Translate(trans))
 			}
 		}
 		return errList
 	}
-	global.Validator.ValidVar = func(field interface{}, tag string) []string {
+	global.Validator.ValidVar = func(ctx *gin.Context, field interface{}, tag string) []string {
 		err := global.Validator.Validate.Var(field, tag)
-		fmt.Println(err)
+		lang := ctx.GetHeader("Accept-Language")
+		if lang == "" {
+			lang = global.Config.Lang
+		}
+		trans := getTranslatorForLang(lang)
 		errList := make([]string, 0, 10)
 		if err != nil {
 			if _, ok := err.(*validator.InvalidValidationError); ok {
@@ -167,21 +195,36 @@ func ApiInitValidator() {
 				return errList
 			}
 			for _, err2 := range err.(validator.ValidationErrors) {
-				errList = append(errList, err2.Translate(global.Validator.VTrans))
+				errList = append(errList, err2.Translate(trans))
 			}
 		}
 		return errList
 	}
 
 }
-
+func getTranslatorForLang(lang string) ut.Translator {
+	switch lang {
+	case "zh_CN":
+		fallthrough
+	case "zh-CN":
+		fallthrough
+	case "zh":
+		trans, _ := global.Validator.UT.GetTranslator("zh_Hans_CN")
+		return trans
+	case "en":
+		fallthrough
+	default:
+		trans, _ := global.Validator.UT.GetTranslator("en")
+		return trans
+	}
+}
 func DatabaseAutoUpdate() {
-	version := 126
+	version := 212
 
 	db := global.DB
 
 	if global.Config.Gorm.Type == config.TypeMysql {
-		// 检查存不存在数据库，不存在则创建
+		//检查存不存在数据库，不存在则创建
 		dbName := db.Migrator().CurrentDatabase()
 		fmt.Println("dbName", dbName)
 		if dbName == "" {
@@ -199,8 +242,8 @@ func DatabaseAutoUpdate() {
 					global.Config.Mysql.Username,
 					global.Config.Mysql.Password,
 					global.Config.Mysql.Addr)
-			}
-			// 新链接
+	
+			   
 			dbWithoutDB := orm.NewMysql(&orm.MysqlConfig{
 				Dns: dsnWithoutDB,
 			})
@@ -227,7 +270,7 @@ func DatabaseAutoUpdate() {
 	if !db.Migrator().HasTable(&model.Version{}) {
 		Migrate(uint(version))
 	} else {
-		// 查找最后一个version
+		//查找最后一个version
 		var v model.Version
 		db.Last(&v)
 		if v.Version < uint(version) {
@@ -255,25 +298,35 @@ func Migrate(version uint) {
 		fmt.Println("migrate err :=>", err)
 	}
 	global.DB.Create(&model.Version{Version: version})
-	// 如果是初次则创建一个默认用户
+	//如果是初次则创建一个默认用户
 	var vc int64
 	global.DB.Model(&model.Version{}).Count(&vc)
 	if vc == 1 {
+		localizer := global.Localizer(&gin.Context{
+			Request: &nethttp.Request{},
+		})
+		defaultGroup, _ := localizer.LocalizeMessage(&i18n.Message{
+			ID: "DefaultGroup",
+		})
 		group := &model.Group{
-			Name: "默认组",
+			Name: defaultGroup,
 			Type: model.GroupTypeDefault,
 		}
 		service.AllService.GroupService.Create(group)
+
+		shareGroup, _ := localizer.LocalizeMessage(&i18n.Message{
+			ID: "ShareGroup",
+		})
 		groupShare := &model.Group{
-			Name: "共享组",
+			Name: shareGroup,
 			Type: model.GroupTypeShare,
 		}
 		service.AllService.GroupService.Create(groupShare)
-		// 是true
+		//是true
 		is_admin := true
 		admin := &model.User{
 			Username: "admin",
-			Nickname: "管理员",
+			Nickname: "Admin",
 			Status:   model.COMMON_STATUS_ENABLE,
 			IsAdmin:  &is_admin,
 			GroupId:  1,
@@ -284,3 +337,36 @@ func Migrate(version uint) {
 
 }
 
+func InitI18n() {
+	bundle := i18n.NewBundle(language.English)
+	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	bundle.LoadMessageFile(global.Config.Gin.ResourcesPath + "/i18n/en.toml")
+	bundle.LoadMessageFile(global.Config.Gin.ResourcesPath + "/i18n/zh_CN.toml")
+	global.Localizer = func(ctx *gin.Context) *i18n.Localizer {
+		lang := ctx.GetHeader("Accept-Language")
+		if lang == "" {
+			lang = global.Config.Lang
+		}
+		if lang == "en" {
+			return i18n.NewLocalizer(bundle, "en")
+		} else {
+			return i18n.NewLocalizer(bundle, lang, "en")
+		}
+	}
+
+	//personUnreadEmails := localizer.MustLocalize(&i18n.LocalizeConfig{
+	//	DefaultMessage: &i18n.Message{
+	//		ID: "PersonUnreadEmails",
+	//	},
+	//	PluralCount: 6,
+	//	TemplateData: map[string]interface{}{
+	//		"Name":        "LE",
+	//		"PluralCount": 6,
+	//	},
+	//})
+	//personUnreadEmails, err := global.Localizer.LocalizeMessage(&i18n.Message{
+	//	ID: "ParamsError",
+	//})
+	//fmt.Println(err, personUnreadEmails)
+
+}
