@@ -95,10 +95,7 @@ func main() {
 		})
 	} else {
 		//sqlite
-		dbPath := global.Config.Gorm.Dbpath
-		dns = fmt.Sprintf("file:%s?mode=rw&_journal_mode=WAL", dbPath)
 		global.DB = orm.NewSqlite(&orm.SqliteConfig{
-			Path:          dns,
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
 			MaxOpenConns: global.Config.Gorm.MaxOpenConns,
 		})
