@@ -6,7 +6,6 @@ gin:
   trust-proxy: ""
 gorm:
   type: "sqlite"
-  dbpath: ./data/rustdeskapi.db
   max-idle-conns: 10
   max-open-conns: 100
 mysql:
