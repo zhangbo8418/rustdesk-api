@@ -95,6 +95,7 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		peer = peerInterface.(*model.Peer)
 	}
 	peer.LastOnlineTime = time.Now().Unix()
-	service.AllService.PeerService.Update(peer)
+	// 将更新后的数据重新存入缓存
+	peerCache.Store(info.Uuid, peer)
 	c.JSON(http.StatusOK, gin.H{})
 }
