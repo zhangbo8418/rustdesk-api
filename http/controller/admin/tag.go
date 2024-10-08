@@ -4,7 +4,6 @@ import (
 	"Gwen/global"
 	"Gwen/http/request/admin"
 	"Gwen/http/response"
-	"Gwen/http/controller/api"
 	"Gwen/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -92,9 +91,6 @@ func (ct *Tag) Create(c *gin.Context) {
 // @Router /admin/tag/list [get]
 // @Security token
 func (ct *Tag) List(c *gin.Context) {
-	// 缓存更新到数据库
-	api.UpdateCacheToDB()
-	
 	query := &admin.TagQuery{}
 	if err := c.ShouldBindQuery(query); err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
