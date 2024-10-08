@@ -18,7 +18,7 @@ type Index struct {
 var peerCache sync.Map
 
 // 定时将缓存中的数据更新到数据库的间隔
-var updateInterval = 5 * time.Minute
+var updateInterval = 1 * time.Hour
 
 // Index 首页
 // @Tags 首页
