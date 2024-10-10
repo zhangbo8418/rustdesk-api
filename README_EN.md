@@ -29,10 +29,12 @@ desktop software that provides self-hosted solutions.
     - OAuth Management
     - Quick access to web client
     - i18n
+    - Share to guest by web client
 - Web Client
     - Automatically obtain API server
     - Automatically obtain ID server and KEY
     - Automatically obtain address book
+    - Visitors are remotely to the device via a temporary sharing link
 
 ## Prerequisites
 
@@ -229,7 +231,7 @@ lejianwen/rustdesk-api
          - 21116:21116 # 自定义 hbbs 映射端口
          - 21116:21116/udp # 自定义 hbbs 映射端口
          - 21118:21118 # web client
-         - 21119:21119 # web client
+
        image: rustdesk/rustdesk-server
        command: hbbs -r <relay-server-ip[:port]> -k 123456789 # 填入个人域名或 IP + hbbr 暴露端口
        volumes:
@@ -247,6 +249,7 @@ lejianwen/rustdesk-api
        container_name: hbbr
        ports:
          - 21117:21117 # 自定义 hbbr 映射端口
+         - 21119:21119 # web client
        image: rustdesk/rustdesk-server
        command: hbbr -k 123456789
        #command: hbbr
