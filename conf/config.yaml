@@ -26,6 +26,9 @@ logger:
   path: "./runtime/log.txt"
   level: "warn" #trace,debug,info,warn,error,fatal
   report-caller: true
+proxy:
+  enable: false
+  host: ""
 redis:
   addr: "127.0.0.1:6379"
   password: ""
