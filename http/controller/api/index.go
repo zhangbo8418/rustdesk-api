@@ -19,7 +19,7 @@ type Index struct {
 var peerCache sync.Map
 
 // 定时将缓存中的数据更新到数据库的间隔
-var updateInterval = 1 * time.Hour
+//var updateInterval = 1 * time.Hour
 
 // Index 首页
 // @Tags 首页
@@ -47,18 +47,18 @@ func UpdateCacheToDB() {
 	})
 }
 
-func init() {
+//func init() {
 	// 定时将缓存的数据写入数据库
-	go func() {
-		ticker := time.NewTicker(updateInterval)
-		defer ticker.Stop()
-		for {
-			<-ticker.C
+//	go func() {
+//		ticker := time.NewTicker(updateInterval)
+//		defer ticker.Stop()
+//		for {
+//			<-ticker.C
 			// 调用缓存更新函数
-			UpdateCacheToDB()
-		}
-	}()
-}
+//			UpdateCacheToDB()
+//		}
+//	}()
+//}
 
 // Heartbeat 心跳
 // @Tags 首页
