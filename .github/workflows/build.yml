@@ -48,10 +48,10 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { platform: "amd64", goos: "linux" }
-          - { platform: "arm64", goos: "linux" }
-          - { platform: "amd64", goos: "windows" }
-
+          - { platform: "amd64", goos: "linux", file_ext: "tar.gz" }
+          - { platform: "arm64", goos: "linux", file_ext: "tar.gz" }
+          - { platform: "armv7l", goos: "linux", file_ext: "tar.gz" }
+          - { platform: "amd64", goos: "windows", file_ext: "zip" }
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -96,18 +96,23 @@ jobs:
           if [ "${{ matrix.job.goos }}" = "windows" ]; then
             sudo apt-get install gcc-mingw-w64-x86-64 zip -y
             GOOS=${{ matrix.job.goos }} GOARCH=${{ matrix.job.platform }} CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-static" CGO_ENABLED=1 go build -ldflags "-s -w" -o ./release/apimain.exe ./cmd/apimain.go
-            zip -r ${{ matrix.job.goos}}-${{ matrix.job.platform }}.zip ./release
+            zip -r ${{ matrix.job.goos}}-${{ matrix.job.platform }}.${{matrix.job.file_ext}} ./release
           else
             if [ "${{ matrix.job.platform }}" = "arm64" ]; then
                 wget https://musl.cc/aarch64-linux-musl-cross.tgz
                 tar -xf aarch64-linux-musl-cross.tgz
                 export PATH=$PATH:$PWD/aarch64-linux-musl-cross/bin
                 GOOS=${{ matrix.job.goos }} GOARCH=${{ matrix.job.platform }} CC=aarch64-linux-musl-gcc CGO_LDFLAGS="-static" CGO_ENABLED=1 go build -ldflags "-s -w" -o ./release/apimain ./cmd/apimain.go
+            elif [ "${{ matrix.job.platform }}" = "armv7l" ]; then
+                wget https://musl.cc/armv7l-linux-musleabihf-cross.tgz
+                tar -xf armv7l-linux-musleabihf-cross.tgz
+                export PATH=$PATH:$PWD/armv7l-linux-musleabihf-cross/bin
+                GOOS=${{ matrix.job.goos }} GOARCH=arm GOARM=7 CC=armv7l-linux-musleabihf-gcc CGO_LDFLAGS="-static" CGO_ENABLED=1 go build -ldflags "-s -w" -o ./release/apimain ./cmd/apimain.go
             else
               sudo apt-get install musl musl-dev musl-tools -y
               GOOS=${{ matrix.job.goos }} GOARCH=${{ matrix.job.platform }} CC=musl-gcc CGO_LDFLAGS="-static" CGO_ENABLED=1 go build -ldflags "-s -w" -o ./release/apimain ./cmd/apimain.go
             fi
-            tar -czf ${{ matrix.job.goos}}-${{ matrix.job.platform }}.tar.gz ./release
+            tar -czf ${{ matrix.job.goos}}-${{ matrix.job.platform }}.${{matrix.job.file_ext}} ./release
           fi
 
       - name: Upload artifact
@@ -115,14 +120,12 @@ jobs:
         with:
           name: rustdesk-api-${{ matrix.job.goos }}-${{ matrix.job.platform }}
           path: |
-            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.tar.gz
-            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.zip
+            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.${{matrix.job.file_ext}}
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.tar.gz
-            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.zip
+            ${{ matrix.job.goos}}-${{ matrix.job.platform }}.${{matrix.job.file_ext}}
         #          tag_name: ${{ env.LATEST_TAG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,6 +140,7 @@ jobs:
         job:
           - { platform: "amd64", goos: "linux",  docker_platform: "linux/amd64" }
           - { platform: "arm64", goos: "linux",  docker_platform: "linux/arm64" }
+          - { platform: "armv7l", goos: "linux",  docker_platform: "linux/arm/v7" }
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -257,6 +261,7 @@ jobs:
         with:
           base-image: ${{ env.BASE_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}
           extra-images: ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-amd64,
+            ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-armv7l,
             ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-arm64
           push: true
 
@@ -266,6 +271,7 @@ jobs:
         with:
           base-image: ghcr.io/${{ env.BASE_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}
           extra-images: ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-amd64,
+            ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-armv7l,
             ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:${{ env.TAG }}-arm64
           push: true
           amend: true
@@ -276,6 +282,7 @@ jobs:
         with:
           base-image: ${{ env.BASE_IMAGE_NAMESPACE }}/rustdesk-api:latest
           extra-images: ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:latest-amd64,
+            ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:latest-armv7l,
             ${{ env.DOCKERHUB_IMAGE_NAMESPACE }}/rustdesk-api:latest-arm64
           push: true
 
@@ -285,6 +292,7 @@ jobs:
         with:
           base-image: ghcr.io/${{ env.BASE_IMAGE_NAMESPACE }}/rustdesk-api:latest
           extra-images: ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:latest-amd64,
+            ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:latest-armv7l,
             ghcr.io/${{ env.GHCR_IMAGE_NAMESPACE }}/rustdesk-api:latest-arm64
           push: true
           amend: true
