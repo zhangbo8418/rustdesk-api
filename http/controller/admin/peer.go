@@ -85,8 +85,15 @@ func (ct *Peer) Create(c *gin.Context) {
 // @Router /admin/peer/list [get]
 // @Security token
 func (ct *Peer) List(c *gin.Context) {
+	// 创建 WaitGroup
+	var wg sync.WaitGroup
+	wg.Add(1) // 添加一个任务到 WaitGroup
+
 	// 缓存更新到数据库
-	api.UpdateCacheToDB()
+	go api.UpdateCacheToDB(&wg) // 启动一个 goroutine 来更新缓存
+
+	// 等待缓存更新完毕
+	wg.Wait()
 	
 	query := &admin.PeerQuery{}
 	if err := c.ShouldBindQuery(query); err != nil {
