@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"strconv"
 	"time"
+	"sync"
 )
 
 type Peer struct {
