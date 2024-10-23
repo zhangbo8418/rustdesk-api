@@ -38,11 +38,12 @@ func (i *Index) Index(c *gin.Context) {
 }
 
 // UpdateCacheToDB 遍历缓存并将数据更新到数据库
-func UpdateCacheToDB() {
+func UpdateCacheToDB(wg *sync.WaitGroup) {
+	defer wg.Done() // 当函数结束时，通知 WaitGroup 完成任务
 	peerCache.Range(func(key, value interface{}) bool {
-		peer := value.(*model.Peer)  // 从缓存中取出 model.Peer
-		service.AllService.PeerService.Update(peer)  // 更新到数据库
-		peerCache.Delete(key)  // 更新后从缓存中删除
+		peer := value.(*model.Peer) // 从缓存中取出 model.Peer
+		service.AllService.PeerService.Update(peer) // 更新到数据库
+		peerCache.Delete(key) // 更新后从缓存中删除
 		return true
 	})
 }
