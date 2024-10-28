@@ -117,7 +117,7 @@ func main() {
 }
 
 func DatabaseAutoUpdate() {
-	version := 235
+	version := 241
 
 	db := global.DB
 
@@ -193,6 +193,8 @@ func Migrate(version uint) {
 		&model.ShareRecord{},
 		&model.AuditConn{},
 		&model.AuditFile{},
+		&model.AddressBookCollection{},
+		&model.AddressBookCollectionRule{},
 	)
 	if err != nil {
 		fmt.Println("migrate err :=>", err)

@@ -11,8 +11,9 @@ type Peer struct {
 	Uuid           string `json:"uuid"  gorm:"default:'';not null;index"`
 	Version        string `json:"version"  gorm:"default:'';not null;"`
 	UserId         uint   `json:"user_id"  gorm:"default:0;not null;index"`
-	User           User   `json:"user,omitempty" gorm:""`
+	User           *User  `json:"user,omitempty"`
 	LastOnlineTime int64  `json:"last_online_time"  gorm:"default:0;not null;"`
+	LastOnlineIp   string `json:"last_online_ip"  gorm:"default:'';not null;"`
 	TimeModel
 }
 

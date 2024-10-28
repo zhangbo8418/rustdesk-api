@@ -61,13 +61,13 @@ func (ct *Peer) Create(c *gin.Context) {
 		response.Fail(c, 101, errList[0])
 		return
 	}
-	u := f.ToPeer()
-	err := service.AllService.PeerService.Create(u)
+	p := f.ToPeer()
+	err := service.AllService.PeerService.Create(p)
 	if err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "OperationFailed")+err.Error())
 		return
 	}
-	response.Success(c, u)
+	response.Success(c, nil)
 }
 
 // List 列表
@@ -218,4 +218,22 @@ func (ct *Peer) BatchDelete(c *gin.Context) {
 		return
 	}
 	response.Success(c, nil)
+}
+
+func (ct *Peer) SimpleData(c *gin.Context) {
+	f := &admin.SimpleDataQuery{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	if len(f.Ids) == 0 {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
+		return
+	}
+	res := service.AllService.PeerService.List(1, 99999, func(tx *gorm.DB) {
+		//可以公开的情报
+		tx.Select("id,version")
+		tx.Where("id in (?)", f.Ids)
+	})
+	response.Success(c, res)
 }
