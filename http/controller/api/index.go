@@ -81,13 +81,15 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
+
 	// 先从缓存中查找对应的 `peer` 数据
 	peerInterface, ok := peerCache.Load(info.Uuid)
 	var peer *model.Peer
+
 	// 如果缓存中不存在数据，从数据库中查找
 	if !ok {
 		peer = service.AllService.PeerService.FindByUuid(info.Uuid)
-		if peer == nil || peer.RowId == 0{
+		if peer == nil || peer.RowId == 0 {
 			// 如果数据库中也找不到，返回空响应
 			c.JSON(http.StatusOK, gin.H{})
 			return
@@ -95,10 +97,14 @@ func (i *Index) Heartbeat(c *gin.Context) {
 	} else {
 		// 如果缓存中存在数据，转换类型
 		peer = peerInterface.(*model.Peer)
-											
 	}
+
+	// 更新 `LastOnlineTime` 和 `LastOnlineIp` 字段
 	peer.LastOnlineTime = time.Now().Unix()
+	peer.LastOnlineIp = c.ClientIP()
+
 	// 将更新后的数据重新存入缓存
 	peerCache.Store(info.Uuid, peer)
 	c.JSON(http.StatusOK, gin.H{})
 }
+
