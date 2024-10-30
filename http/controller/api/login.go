@@ -81,7 +81,7 @@ func (l *Login) Login(c *gin.Context) {
 // @Produce  json
 // @Success 200 {object} []string
 // @Failure 500 {object} response.ErrorResponse
-// @Router /login-options [post]
+// @Router /login-options [get]
 func (l *Login) LoginOptions(c *gin.Context) {
 	oauthOks := []string{}
 	err, _ := service.AllService.OauthService.GetOauthConfig(model.OauthTypeGithub)
@@ -91,6 +91,10 @@ func (l *Login) LoginOptions(c *gin.Context) {
 	err, _ = service.AllService.OauthService.GetOauthConfig(model.OauthTypeGoogle)
 	if err == nil {
 		oauthOks = append(oauthOks, model.OauthTypeGoogle)
+	}
+	err, _ = service.AllService.OauthService.GetOauthConfig(model.OauthTypeOidc)
+	if err == nil {
+		oauthOks = append(oauthOks, model.OauthTypeOidc)
 	}
 	oauthOks = append(oauthOks, model.OauthTypeWebauth)
 	var oidcItems []map[string]string

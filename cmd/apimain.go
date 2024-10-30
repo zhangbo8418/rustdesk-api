@@ -117,7 +117,7 @@ func main() {
 }
 
 func DatabaseAutoUpdate() {
-	version := 242
+	version := 243
 
 	db := global.DB
 
