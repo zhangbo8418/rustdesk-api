@@ -6,7 +6,8 @@ import (
 
 type UserForm struct {
 	Id       uint   `json:"id"`
-	Username string `json:"username" validate:"required,gte=4,lte=10"`
+	Username string `json:"username" validate:"required,gte=2,lte=10"`
+	Email    string `json:"email"` //validate:"required,email" email不强制
 	//Password string           `json:"password" validate:"required,gte=4,lte=20"`
 	Nickname string           `json:"nickname"`
 	Avatar   string           `json:"avatar"`
@@ -19,6 +20,7 @@ func (uf *UserForm) FromUser(user *model.User) *UserForm {
 	uf.Id = user.Id
 	uf.Username = user.Username
 	uf.Nickname = user.Nickname
+	uf.Email = user.Email
 	uf.Avatar = user.Avatar
 	uf.GroupId = user.GroupId
 	uf.IsAdmin = user.IsAdmin
@@ -30,6 +32,7 @@ func (uf *UserForm) ToUser() *model.User {
 	user.Id = uf.Id
 	user.Username = uf.Username
 	user.Nickname = uf.Nickname
+	user.Email = uf.Email
 	user.Avatar = uf.Avatar
 	user.GroupId = uf.GroupId
 	user.IsAdmin = uf.IsAdmin
@@ -61,7 +64,8 @@ type GroupUsersQuery struct {
 }
 
 type RegisterForm struct {
-	Username        string `json:"username" validate:"required,gte=4,lte=10"`
+	Username        string `json:"username" validate:"required,gte=2,lte=10"`
+	Email           string `json:"email"` // validate:"required,email"
 	Password        string `json:"password" validate:"required,gte=4,lte=20"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,gte=4,lte=20"`
 }
