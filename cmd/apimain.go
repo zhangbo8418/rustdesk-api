@@ -117,7 +117,7 @@ func main() {
 }
 
 func DatabaseAutoUpdate() {
-	version := 245
+	version := 246
 
 	db := global.DB
 
@@ -177,7 +177,7 @@ func DatabaseAutoUpdate() {
 		if v.Version < 245 {
 			//oauths 表的 oauth_type 字段设置为 op同样的值
 			db.Exec("update oauths set oauth_type = op")
-			db.Exec("update oauths set issuer = 'https://accounts.google.com' where op = 'google' and issuer = ''")
+			db.Exec("update oauths set issuer = 'https://accounts.google.com' where op = 'google'")
 			db.Exec("update user_thirds set oauth_type = third_type, op = third_type")
 			//通过email迁移旧的google授权
 			uts := make([]model.UserThird, 0)
@@ -187,6 +187,9 @@ func DatabaseAutoUpdate() {
 					db.Model(&model.User{}).Where("id = ?", ut.UserId).Update("email", ut.OpenId)
 				}
 			}
+		}
+		if v.Version < 246 {
+			db.Exec("update oauths set issuer = 'https://accounts.google.com' where op = 'google' and issuer is null")
 		}
 	}
 
