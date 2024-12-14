@@ -3,6 +3,7 @@ package router
 import (
 	_ "Gwen/docs/admin"
 	"Gwen/http/controller/admin"
+	"Gwen/http/controller/admin/my"
 	"Gwen/http/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -34,10 +35,13 @@ func Init(g *gin.Engine) {
 	ConfigBind(adg)
 
 	//deprecated by ConfigBind
-	rs := &admin.Rustdesk{}
-	adg.GET("/server-config", rs.ServerConfig)
-	adg.GET("/app-config", rs.AppConfig)
+	//rs := &admin.Rustdesk{}
+	//adg.GET("/server-config", rs.ServerConfig)
+	//adg.GET("/app-config", rs.AppConfig)
 	//deprecated end
+
+	ShareRecordBind(adg)
+	MyBind(adg)
 
 	//访问静态文件
 	//g.StaticFS("/upload", http.Dir(global.Config.Gin.ResourcesPath+"/upload"))
@@ -107,11 +111,12 @@ func AddressBookBind(rg *gin.RouterGroup) {
 		aR.POST("/update", cont.Update)
 		aR.POST("/delete", cont.Delete)
 		aR.POST("/shareByWebClient", cont.ShareByWebClient)
-		aR.POST("/batchCreateFromPeers", cont.BatchCreateFromPeers)
+
 		aR.POST("/batchUpdateTags", cont.BatchUpdateTags)
 
 		arp := aR.Use(middleware.AdminPrivilege())
 		arp.POST("/batchCreate", cont.BatchCreate)
+		arp.POST("/batchCreateFromPeers", cont.BatchCreateFromPeers)
 
 	}
 }
@@ -220,3 +225,26 @@ func FileBind(rg *gin.RouterGroup) {
 		aR.POST("/upload", cont.Upload)
 	}
 }*/
+
+func MyBind(rg *gin.RouterGroup) {
+	{
+		msr := &my.ShareRecord{}
+		rg.GET("/my/share_record/list", msr.List)
+		rg.POST("/my/share_record/delete", msr.Delete)
+		rg.POST("/my/share_record/batchDelete", msr.BatchDelete)
+
+		mab := &my.AddressBook{}
+		rg.POST("/my/address_book/batchCreateFromPeers", mab.BatchCreateFromPeers)
+	}
+}
+
+func ShareRecordBind(rg *gin.RouterGroup) {
+	aR := rg.Group("/share_record").Use(middleware.AdminPrivilege())
+	{
+		cont := &admin.ShareRecord{}
+		aR.GET("/list", cont.List)
+		aR.POST("/delete", cont.Delete)
+		aR.POST("/batchDelete", cont.BatchDelete)
+	}
+
+}
