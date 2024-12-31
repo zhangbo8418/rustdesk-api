@@ -185,7 +185,7 @@ func InitGlobal() {
 	global.Lock = lock.NewLocal()
 }
 func DatabaseAutoUpdate() {
-	version := 247
+	version := 251
 
 	db := global.DB
 
@@ -281,6 +281,7 @@ func Migrate(version uint) {
 		&model.AuditFile{},
 		&model.AddressBookCollection{},
 		&model.AddressBookCollectionRule{},
+		&model.ServerCmd{},
 	)
 	if err != nil {
 		fmt.Println("migrate err :=>", err)
