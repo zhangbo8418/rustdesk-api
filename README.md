@@ -76,14 +76,14 @@
 2. 普通用户界面
    ![web_user](docs/web_admin_user.png)
    右上角可以更改密码,可以切换语言，可以切换`白天/黑夜`模式
+
    ![web_resetpwd](docs/web_resetpwd.png)
 
-3. 分组可以自定义，方便管理，暂时支持两种类型: `共享组` 和 `普通组`
-   ![web_admin_gr](docs/web_admin_gr.png)
-4. 可以直接打开webclient，方便使用；也可以分享给游客，游客可以直接通过webclient远程到设备
-
+3. 每个用户可以多个地址簿，也可以将地址簿共享给其他用户
+4. 分组可以自定义，方便管理，暂时支持两种类型: `共享组` 和 `普通组`
+5. 可以直接打开webclient，方便使用；也可以分享给游客，游客可以直接通过webclient远程到设备
    ![web_webclient](docs/admin_webclient.png)
-5. Oauth,支持了`Github`, `Google` 以及 `OIDC`, 需要创建一个`OAuth App`，然后配置到后台
+6. Oauth,支持了`Github`, `Google` 以及 `OIDC`, 需要创建一个`OAuth App`，然后配置到后台
    ![web_admin_oauth](docs/web_admin_oauth.png)
     - 对于`Google` 和 `Github`, `Issuer` 和 `Scopes`不需要填写.
     - 对于`OIDC`, `Issuer`是必须的。`Scopes`是可选的，默认为 `openid,profile,email`. 确保可以获取 `sub`,`email` 和`preferred_username`
@@ -91,6 +91,21 @@
       中创建,地址 [https://github.com/settings/developers](https://github.com/settings/developers)
     - `Authorization callback URL`填写`http://<your server[:port]>/api/oauth/callback`
       ，比如`http://127.0.0.1:21114/api/oauth/callback`
+7. 登录日志
+8. 链接日志
+9. 文件传输日志
+10. server控制
+
+  - `简易模式`,已经界面化了一些简单的指令，可以直接在后台执行
+    ![rustdesk_command_simple](./docs/rustdesk_command_simple.png)
+
+  - `高级模式`,直接在后台执行指令
+      * 可以官方指令
+      * 可以添加自定义指令
+      * 可以执行自定义指令
+    
+    ![rustdesk_command_advance](./docs/rustdesk_command_advance.png)
+ 
 
 ### Web Client:
 
@@ -264,8 +279,48 @@ proxy:
 6. 打开浏览器访问`http://<your server[:port]>/_admin/`，默认用户名密码为`admin`，请及时更改密码。
 
 
+#### 使用我fork后的server-s6镜像运行
+
+- github https://github.com/lejianwen/rustdesk-server
+- docker hub https://hub.docker.com/r/lejianwen/rustdesk-server-s6
+
+```yaml
+ networks:
+   rustdesk-net:
+     external: false
+ services:
+   rustdesk:
+     ports:
+       - 21114:21114
+       - 21115:21115
+       - 21116:21116
+       - 21116:21116/udp
+       - 21117:21117
+       - 21118:21118
+       - 21119:21119
+     image: lejianwen/rustdesk-server-s6:latest
+     environment:
+       - RELAY=<relay_server[:port]>
+       - ENCRYPTED_ONLY=1
+       - MUST_LOGIN=N
+       - TZ=Asia/Shanghai
+       - RUSTDESK_API_RUSTDESK_ID_SERVER=<id_server[:21116]>
+       - RUSTDESK_API_RUSTDESK_RELAY_SERVER=<relay_server[:21117]>
+       - RUSTDESK_API_RUSTDESK_API_SERVER=http://<api_server[:21114]>
+     volumes:
+       - /data/rustdesk/server:/data
+       - /data/rustdesk/api:/app/data #将数据库挂载
+       - /data/rustdesk/server:/app/conf/data #挂载key文件到api容器，可以不用使用 RUSTDESK_API_RUSTDESK_KEY
+     networks:
+       - rustdesk-net
+     restart: unless-stopped
+       
+```
+
+
 ## 其他
 
+- [WIKI](https://github.com/lejianwen/rustdesk-api/wiki)
 - [链接超时问题](https://github.com/lejianwen/rustdesk-api/issues/92)
 - [修改客户端ID](https://github.com/abdullah-erturk/RustDesk-ID-Changer)
 - [webclient来源](https://hub.docker.com/r/keyurbhole/flutter_web_desk)
