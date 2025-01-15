@@ -27,16 +27,19 @@ rustdesk:
   relay-server: "192.168.1.66:21117"
   api-server: "http://127.0.0.1:21114"
   key: ""
-  key-file: "./conf/data/id_ed25519.pub"
+  key-file: "/data/id_ed25519.pub"
   personal: 1
   webclient-magic-queryonline: 0
 logger:
   path: "./runtime/log.txt"
-  level: "debug" #trace,debug,info,warn,error,fatal
+  level: "warn" #trace,debug,info,warn,error,fatal
   report-caller: true
 proxy:
   enable: false
   host: "http://127.0.0.1:1080"
+jwt:
+  key: ""
+  expire-duration: 360000
 redis:
   addr: "127.0.0.1:6379"
   password: ""
@@ -54,6 +57,4 @@ oss:
   callback-url: ""
   expire-time: 30
   max-byte: 10240
-jwt:
-  private-key: "./conf/jwt_pri.pem"
-  expire-duration: 360000
+
