@@ -2,11 +2,13 @@ package my
 
 import (
 	"Gwen/http/request/admin"
+	"Gwen/http/controller/api"
 	"Gwen/http/response"
 	"Gwen/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"time"
+	"sync"
 )
 
 type Peer struct {
@@ -29,6 +31,15 @@ type Peer struct {
 // @Router /admin/my/peer/list [get]
 // @Security token
 func (ct *Peer) List(c *gin.Context) {
+	// 创建 WaitGroup
+	var wg sync.WaitGroup
+	wg.Add(1) // 添加一个任务到 WaitGroup
+
+	// 缓存更新到数据库
+	go api.UpdateCacheToDB(&wg) // 启动一个 goroutine 来更新缓存
+
+	// 等待缓存更新完毕
+	wg.Wait()
 	query := &admin.PeerQuery{}
 	if err := c.ShouldBindQuery(query); err != nil {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())

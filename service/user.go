@@ -46,14 +46,6 @@ func (us *UserService) InfoByOpenid(openid string) *model.User {
 
 // InfoByUsernamePassword 根据用户名密码取用户信息
 func (us *UserService) InfoByUsernamePassword(username, password string) *model.User {
-	if global.Config.Ldap.Enable {
-		u, err := AllService.LdapService.Authenticate(username, password)
-		if err == nil {
-			return u
-		}
-		global.Logger.Error("LDAP authentication failed, %v", err)
-		global.Logger.Warn("Fallback to local database")
-	}
 	u := &model.User{}
 	global.DB.Where("username = ? and password = ?", username, us.EncryptPassword(password)).First(u)
 	return u
@@ -164,9 +156,6 @@ func (us *UserService) CheckUserEnable(u *model.User) bool {
 // Create 创建
 func (us *UserService) Create(u *model.User) error {
 	// The initial username should be formatted, and the username should be unique
-	if us.IsUsernameExists(u.Username) {
-		return errors.New("UsernameExists")
-	}
 	u.Username = us.formatUsername(u.Username)
 	u.Password = us.EncryptPassword(u.Password)
 	res := global.DB.Create(u).Error
@@ -354,10 +343,13 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 
 // GenerateUsernameByOauth 生成用户名
 func (us *UserService) GenerateUsernameByOauth(name string) string {
-	for us.IsUsernameExists(name) {
-		name += strconv.Itoa(rand.Intn(10)) // Append a random digit (0-9)
+	u := &model.User{}
+	global.DB.Where("username = ?", name).First(u)
+	if u.Id == 0 {
+		return name
 	}
-	return name
+	name = name + strconv.FormatInt(rand.Int63n(10), 10)
+	return us.GenerateUsernameByOauth(name)
 }
 
 // UserThirdsByUserId
@@ -407,13 +399,10 @@ func (us *UserService) Register(username string, email string, password string) 
 	u := &model.User{
 		Username: username,
 		Email:    email,
-		Password: password,
+		Password: us.EncryptPassword(password),
 		GroupId:  1,
 	}
-	err := us.Create(u)
-	if err != nil {
-		return nil
-	}
+	global.DB.Create(u)
 	return u
 }
 
@@ -487,12 +476,4 @@ func (us *UserService) BatchDeleteUserToken(ids []uint) error {
 
 func (us *UserService) VerifyJWT(token string) (uint, error) {
 	return global.Jwt.ParseToken(token)
-}
-
-// IsUsernameExists 判断用户名是否存在, it will check the internal database and LDAP(if enabled)
-func (us *UserService) IsUsernameExists(username string) bool {
-	u := &model.User{}
-	global.DB.Where("username = ?", username).First(u)
-	existsInLdap := AllService.LdapService.IsUsernameExists(username)
-	return u.Id != 0 || existsInLdap
 }

@@ -18,7 +18,6 @@ type Service struct {
 	*AuditService
 	*ShareRecordService
 	*ServerCmdService
-	*LdapService
 }
 
 func New() *Service {

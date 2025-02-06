@@ -38,7 +38,6 @@ type Config struct {
 	Jwt      Jwt
 	Rustdesk Rustdesk
 	Proxy    Proxy
-	Ldap	 Ldap
 }
 
 // Init 初始化配置
