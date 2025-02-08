@@ -13,6 +13,7 @@ import (
 	"Gwen/model"
 	"Gwen/service"
 	"Gwen/utils"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
