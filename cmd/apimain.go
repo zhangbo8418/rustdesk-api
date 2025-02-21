@@ -16,6 +16,7 @@ import (
 	"github.com/lejianwen/rustdesk-api/v2/utils"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -130,8 +131,23 @@ func InitGlobal() {
 		})
 	}
 	//gorm
+	var dns string
 	if global.Config.Gorm.Type == config.TypeMysql {
-		dns := global.Config.Mysql.Username + ":" + global.Config.Mysql.Password + "@(" + global.Config.Mysql.Addr + ")/" + global.Config.Mysql.Dbname + "?charset=utf8mb4&parseTime=True&loc=Local"
+		if global.Config.Mysql.Socket != "" {
+			// 使用 Unix Socket 构建 DSN
+			dns = fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+				global.Config.Mysql.Username,
+				global.Config.Mysql.Password,
+				global.Config.Mysql.Socket,
+				global.Config.Mysql.Dbname)
+		} else {
+			// 使用 TCP 构建 DSN
+			dns = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+				global.Config.Mysql.Username,
+				global.Config.Mysql.Password,
+				global.Config.Mysql.Addr,
+				global.Config.Mysql.Dbname)
+		}
 		global.DB = orm.NewMysql(&orm.MysqlConfig{
 			Dns:          dns,
 			MaxIdleConns: global.Config.Gorm.MaxIdleConns,
@@ -175,9 +191,20 @@ func DatabaseAutoUpdate() {
 		dbName := db.Migrator().CurrentDatabase()
 		if dbName == "" {
 			dbName = global.Config.Mysql.Dbname
-			// 移除 DSN 中的数据库名称，以便初始连接时不指定数据库
-			dsnWithoutDB := global.Config.Mysql.Username + ":" + global.Config.Mysql.Password + "@(" + global.Config.Mysql.Addr + ")/?charset=utf8mb4&parseTime=True&loc=Local"
-			//新链接
+			var dsnWithoutDB string
+			if global.Config.Mysql.Socket != "" {
+				// 使用 Unix Socket 构建 DSN
+				dsnWithoutDB = fmt.Sprintf("%s:%s@unix(%s)/?charset=utf8mb4&parseTime=True&loc=Local",
+					global.Config.Mysql.Username,
+					global.Config.Mysql.Password,
+					global.Config.Mysql.Socket)
+			} else {
+				// 使用 TCP 构建 DSN
+				dsnWithoutDB = fmt.Sprintf("%s:%s@tcp(%s)/?charset=utf8mb4&parseTime=True&loc=Local",
+					global.Config.Mysql.Username,
+					global.Config.Mysql.Password,
+					global.Config.Mysql.Addr)
+			}
 			dbWithoutDB := orm.NewMysql(&orm.MysqlConfig{
 				Dns: dsnWithoutDB,
 			})
@@ -287,11 +314,7 @@ func Migrate(version uint) {
 			IsAdmin:  &is_admin,
 			GroupId:  1,
 		}
-
-		// 生成随机密码
-		pwd := utils.RandomString(8)
-		global.Logger.Info("Admin Password Is: ", pwd)
-		admin.Password = service.AllService.UserService.EncryptPassword(pwd)
+		admin.Password = service.AllService.UserService.EncryptPassword("admin")
 		global.DB.Create(admin)
 	}
 
