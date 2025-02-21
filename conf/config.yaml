@@ -1,3 +1,4 @@
+
 lang: "zh-CN"
 app:
   web-client: 1  # 1:启用 0:禁用
@@ -22,6 +23,7 @@ gorm:
 mysql:
   username: ""
   password: ""
+  socket: "/run/mysqld/mysqld.sock"
   addr: ""
   dbname: ""
 rustdesk:
@@ -80,4 +82,3 @@ oss:
   callback-url: ""
   expire-time: 30
   max-byte: 10240
-
