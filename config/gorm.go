@@ -9,7 +9,7 @@ type Gorm struct {
 	Type         string `mapstructure:"type"`
 	MaxIdleConns int    `mapstructure:"max-idle-conns"`
 	MaxOpenConns int    `mapstructure:"max-open-conns"`
-	Dbpath string `mapstructure:"dbpath"
+	Dbpath string `mapstructure:"dbpath"`
 }
 
 type Mysql struct {
