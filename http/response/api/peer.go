@@ -32,12 +32,13 @@ https://github.com/rustdesk/rustdesk/blob/master/flutter/lib/common/hbbs/hbbs.da
 		  }
 */
 type GroupPeerPayload struct {
-	Id       string           `json:"id"`
-	Info     *PeerPayloadInfo `json:"info"`
-	Status   int              `json:"status"`
-	User     string           `json:"user"`
-	UserName string           `json:"user_name"`
-	Note     string           `json:"note"`
+	Id              string           `json:"id"`
+	Info            *PeerPayloadInfo `json:"info"`
+	Status          int              `json:"status"`
+	User            string           `json:"user"`
+	UserName        string           `json:"user_name"`
+	Note            string           `json:"note"`
+	DeviceGroupName string           `json:"device_group_name"`
 }
 type PeerPayloadInfo struct {
 	DeviceName string `json:"device_name"`
@@ -59,7 +60,7 @@ func (gpp *GroupPeerPayload) FromAddressBook(a *model.AddressBook, username stri
 	gpp.UserName = username
 }
 
-func (gpp *GroupPeerPayload) FromPeer(p *model.Peer, username string) {
+func (gpp *GroupPeerPayload) FromPeer(p *model.Peer, username string, dGroupName string) {
 	gpp.Id = p.Id
 	gpp.Info = &PeerPayloadInfo{
 		DeviceName: p.Hostname,
@@ -68,4 +69,5 @@ func (gpp *GroupPeerPayload) FromPeer(p *model.Peer, username string) {
 	}
 	gpp.Note = ""
 	gpp.UserName = username
+	gpp.DeviceGroupName = dGroupName
 }
