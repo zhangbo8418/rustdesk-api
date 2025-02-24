@@ -13,7 +13,7 @@ import (
 	"github.com/lejianwen/rustdesk-api/v2/lib/upload"
 	"github.com/lejianwen/rustdesk-api/v2/model"
 	"github.com/lejianwen/rustdesk-api/v2/service"
-	"github.com/lejianwen/rustdesk-api/v2/utils"
+	//"github.com/lejianwen/rustdesk-api/v2/utils"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/spf13/cobra"
 	"fmt"
