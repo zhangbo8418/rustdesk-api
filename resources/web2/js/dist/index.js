@@ -11088,6 +11088,9 @@ function R4(u = !1) {
 }
 
 function getUriFromRs(uri, isRelay = false, roffset = 0) {
+    if (window.ws_host) {
+        return window.ws_host + "/ws/" + (isRelay ? "relay" : "id")
+    }
     const p = isHttps() ? "wss://" : "ws://"
     const [domain, uriport] = uri.split(":")
     if (!isHttps()) {
