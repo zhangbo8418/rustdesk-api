@@ -1,3 +1,4 @@
+
 package api
 
 import (
@@ -9,17 +10,10 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"sync"
 )
 
 type Index struct {
 }
-
-// 缓存变量
-var peerCache sync.Map
-
-// 定时将缓存中的数据更新到数据库的间隔
-//var updateInterval = 1 * time.Hour
 
 // Index 首页
 // @Tags 首页
@@ -36,30 +30,6 @@ func (i *Index) Index(c *gin.Context) {
 		"Hello Gwen",
 	)
 }
-
-// UpdateCacheToDB 遍历缓存并将数据更新到数据库
-func UpdateCacheToDB(wg *sync.WaitGroup) {
-	defer wg.Done() // 当函数结束时，通知 WaitGroup 完成任务
-	peerCache.Range(func(key, value interface{}) bool {
-		peer := value.(*model.Peer) // 从缓存中取出 model.Peer
-		service.AllService.PeerService.Update(peer) // 更新到数据库
-		peerCache.Delete(key) // 更新后从缓存中删除
-		return true
-	})
-}
-
-//func init() {
-	// 定时将缓存的数据写入数据库
-//	go func() {
-//		ticker := time.NewTicker(updateInterval)
-//		defer ticker.Stop()
-//		for {
-//			<-ticker.C
-			// 调用缓存更新函数
-//			UpdateCacheToDB()
-//		}
-//	}()
-//}
 
 // Heartbeat 心跳
 // @Tags 首页
@@ -81,29 +51,16 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
 		return
 	}
-	// 先从缓存中查找对应的 `peer` 数据
-	peerInterface, ok := peerCache.Load(info.Uuid)
-	var peer *model.Peer
-
-	// 如果缓存中不存在数据，从数据库中查找
-	if !ok {
-		peer = service.AllService.PeerService.FindByUuid(info.Uuid)
-		if peer == nil || peer.RowId == 0 {
-			// 如果数据库中也找不到，返回空响应
-			c.JSON(http.StatusOK, gin.H{})
-			return
-		}
-	} else {
-		// 如果缓存中存在数据，转换类型
-		peer = peerInterface.(*model.Peer)
+	peer := service.AllService.PeerService.FindByUuid(info.Uuid)
+	if peer == nil || peer.RowId == 0 {
+		c.JSON(http.StatusOK, gin.H{})
+		return
 	}
-
-	// 更新 `LastOnlineTime` 和 `LastOnlineIp` 字段
-	peer.LastOnlineTime = time.Now().Unix()
-	peer.LastOnlineIp = c.ClientIP()
-
-	// 将更新后的数据重新存入缓存
-	peerCache.Store(info.Uuid, peer)
+	//如果在40s以内则不更新
+	if time.Now().Unix()-peer.LastOnlineTime >= 30 {
+		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: time.Now().Unix(), LastOnlineIp: c.ClientIP()}
+		service.AllService.PeerService.Update(upp)
+	}
 	c.JSON(http.StatusOK, gin.H{})
 }
 
