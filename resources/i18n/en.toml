@@ -143,3 +143,13 @@ other = "Password login disabled."
 description = "Cannot share to self."
 one = "Cannot share to self."
 other = "Cannot share to self."
+
+[Banned]
+description = "Banned."
+one = "Banned."
+other = "Banned."
+
+[RegisterSuccessWaitAdminConfirm]
+description = "Register success, wait admin confirm."
+one = "Register success, wait admin confirm."
+other = "Register success, wait admin confirm."
